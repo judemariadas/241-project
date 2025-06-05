@@ -77,6 +77,13 @@ wdiagn_c <- lm(formula = log1p(casual) ~ hr + temp + weekday + yr + I(hum^2) + t
 summary(wdiagn_c)  # adjusted R^2 = 0.8285
 plot(wdiagn_c)  # scale-location plot is much better!!!
 
+# just look at weather stuff
+weatherfit_c <- lm(formula = log1p(casual) ~ temp + I(hum^2) + temp * I(hum^2) + weathersit + log1p(windspeed), data = bike)
+weatherweights_c <- 1 / lm(abs(weatherfit_c$residuals) ~ weatherfit_c$fitted.values)$fitted.values^2
+wweatherfit_c <- lm(formula = log1p(casual) ~ temp + I(hum^2) + temp * I(hum^2) + weathersit + log1p(windspeed), data = bike, weights = weatherweights_c)
+summary(wweatherfit_c)  # adjusted R^2 = 0.4419
+plot(wweatherfit_c)
+
 # select predictors for registered riders
 fit0_r <- lm(registered ~ 1, data = bike)
 fit2_r <- lm(registered ~ season + yr + mnth + hr + holiday + weekday + workingday + weathersit + temp + atemp + hum + windspeed, data = bike)
@@ -97,6 +104,12 @@ wdiagn_r <- lm(formula = log1p(registered) ~ hr + yr + season + workingday + wea
 summary(wdiagn_r)  # adjusted R^2 = 0.7889
 plot(wdiagn_r)  # scale-location plot is better
 
+# just look at weather stuff
+weatherfit_r <- lm(formula = log1p(registered) ~ weathersit + temp + I(hum^2) + temp * I(hum^2) + log1p(windspeed), data = bike)
+weatherweights_r <- 1 / lm(abs(weatherfit_r$residuals) ~ weatherfit_r$fitted.values)$fitted.values^2
+wweatherfit_r <- lm(formula = log1p(registered) ~ weathersit + temp + I(hum^2) + temp * I(hum^2) + log1p(windspeed), data = bike, weights = weatherweights_r)
+summary(wweatherfit_r)  # adjusted R^2 = 0.2553
+plot(wweatherfit_r)  # qq plot looks atrocious
 
 # Step 4 Residual analysis 
 
