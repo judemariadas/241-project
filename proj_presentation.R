@@ -68,13 +68,13 @@ stepmodel2_c <- lm(formula = casual ~ hr + temp + weekday + yr + hum + holiday +
 summary(stepmodel2_c)  # adjusted R^2 = 0.5872
 
 # diagnostics---casual
-diagn_c <- lm(formula = log1p(casual) ~ hr + temp + weekday + yr + I(hum^2) + holiday + weathersit + log1p(windspeed) + mnth, data = bike)
-summary(diagn_c)  # adjusted R^2 = 0.8233
+diagn_c <- lm(formula = log1p(casual) ~ hr + temp + weekday + yr + I(hum^2) + temp * I(hum^2) + holiday + weathersit + log1p(windspeed) + mnth, data = bike)
+summary(diagn_c)  # adjusted R^2 = 0.8243
 plot(diagn_c)  # scale-location plot is giving, like, bad vibes, but the red line is roughly linear...
 # address heteroscedasticity using wls (https://rpubs.com/mpfoley73/500818)
 weights_c <- 1 / lm(abs(diagn_c$residuals) ~ diagn_c$fitted.values)$fitted.values^2
-wdiagn_c <- lm(formula = log1p(casual) ~ hr + temp + weekday + yr + I(hum^2) + holiday + weathersit + log1p(windspeed) + mnth, data = bike, weights = weights_c)
-summary(wdiagn_c)  # adjusted R^2 = 0.8272
+wdiagn_c <- lm(formula = log1p(casual) ~ hr + temp + weekday + yr + I(hum^2) + temp * I(hum^2) + holiday + weathersit + log1p(windspeed) + mnth, data = bike, weights = weights_c)
+summary(wdiagn_c)  # adjusted R^2 = 0.8285
 plot(wdiagn_c)  # scale-location plot is much better!!!
 
 # select predictors for registered riders
@@ -88,13 +88,13 @@ stepmodel2_r <- lm(formula = registered ~ hr + yr + season + workingday + weathe
 summary(stepmodel2_r)  # adjusted R^2 = 0.6781
 
 #  diagnostics---registered
-diagn_r <- lm(formula = log1p(registered) ~ hr + yr + season + workingday + weathersit + atemp + I(hum^2) + weekday + log1p(windspeed), data = bike)
-summary(diagn_r)  # adjusted R^2 = 0.8139
+diagn_r <- lm(formula = log1p(registered) ~ hr + yr + season + workingday + weathersit + temp + I(hum^2) + temp * I(hum^2) + weekday + log1p(windspeed), data = bike)
+summary(diagn_r)  # adjusted R^2 = 0.8144
 plot(diagn_r)  # scale-location plot is still not great and idk how to get rid of the red line drop
 # address heteroscedasticity using wls (https://rpubs.com/mpfoley73/500818)
 weights_r <- 1 / lm(abs(diagn_r$residuals) ~ diagn_r$fitted.values)$fitted.values^2
-wdiagn_r <- lm(formula = log1p(registered) ~ hr + yr + season + workingday + weathersit + atemp + I(hum^2) + weekday + log1p(windspeed), data = bike, weights = weights_r)
-summary(wdiagn_r)  # adjusted R^2 = 0.7884
+wdiagn_r <- lm(formula = log1p(registered) ~ hr + yr + season + workingday + weathersit + temp + I(hum^2) + temp * I(hum^2) + weekday + log1p(windspeed), data = bike, weights = weights_r)
+summary(wdiagn_r)  # adjusted R^2 = 0.7889
 plot(wdiagn_r)  # scale-location plot is better
 
 
