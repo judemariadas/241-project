@@ -7,7 +7,8 @@ library(boot)
 library(dplyr)
 library(MASS)
 
-bike <- read.csv("bike+sharing+dataset/hour.csv")
+#bike <- read.csv("bike+sharing+dataset/hour.csv")
+bike <- read_csv("C:/Users/froze/Downloads/hour.csv")  # use this for sonata laptop
 
 glimpse(bike)  # overview
 summary(bike)  # basic stats
@@ -21,7 +22,7 @@ range(bike$casual + bike$registered - bike$cnt)  # should be zero
 # Outlier Detection
 z_scores <- scale(bike$casual)
 outliers_z <- bike[abs(z_scores) > 3, ]
-nrow(outliers_z)
+nrow(outliers_z)  # row 467
 
 ggplot(bike, aes(x = "Temperature", y = temp)) +
   geom_boxplot(outlier.shape = 16, outlier.colour = "red") +
@@ -30,9 +31,72 @@ ggplot(bike, aes(x = "Temperature", y = temp)) +
   ggtitle("Boxplot of Normalized Temperature")
 
 
+## refactor discrete variables
+bike$season <- as.factor(bike$season)
+bike$yr <- as.factor(bike$yr)
+bike$mnth <- as.factor(bike$mnth)
+bike$hr <- as.factor(bike$hr)
+bike$holiday <- as.factor(bike$holiday)
+bike$weekday <- as.factor(bike$weekday)
+bike$workingday <- as.factor(bike$workingday)  # workingday is completely dependent on holiday and weekday
+bike$weathersit <- as.factor(bike$weathersit)
+
 
 model <- lm(cnt ~ season + holiday + workingday + weathersit + temp + atemp + hum + windspeed, data = bike)
 vif(model)
+# temp and atemp have high VIF... how were these variables chosen for the model?
+
+## going to try some stepwise selection...
+fit0 <- lm(cnt ~ 1, data = bike)
+fit2 <- lm(cnt ~ season + yr + mnth + hr + holiday + weekday + workingday + weathersit + temp + atemp + hum + windspeed, data = bike)
+stepAIC(fit0, scope = formula(fit2), direction = "both")
+stepmodel <- lm(formula = cnt ~ hr + atemp + yr + weathersit + season + mnth + 
+                  hum + weekday + holiday + windspeed + temp, data = bike)
+vif(stepmodel)  # remove mnth, atemp
+stepmodel2 <- lm(formula = cnt ~ hr + yr + weathersit + season + 
+                   hum + weekday + holiday + windspeed + temp, data = bike)
+summary(stepmodel2)  # adjusted R^2 = 0.6811
+
+# select predictors for casual riders
+fit0_c <- lm(casual ~ 1, data = bike)
+fit2_c <- lm(casual ~ season + yr + mnth + hr + holiday + weekday + workingday + weathersit + temp + atemp + hum + windspeed, data = bike)
+stepAIC(fit0_c, scope = formula(fit2_c), direction = "both")
+stepmodel_c <- lm(formula = casual ~ hr + temp + weekday + yr + mnth + hum + holiday + weathersit + windspeed + season + atemp, data = bike)
+# adjusted R^2 = 0.5885
+vif(stepmodel_c)
+stepmodel2_c <- lm(formula = casual ~ hr + temp + weekday + yr + hum + holiday + weathersit + windspeed + mnth, data = bike)
+summary(stepmodel2_c)  # adjusted R^2 = 0.5872
+
+# diagnostics---casual
+diagn_c <- lm(formula = log1p(casual) ~ hr + temp + weekday + yr + I(hum^2) + holiday + weathersit + log1p(windspeed) + mnth, data = bike)
+summary(diagn_c)  # adjusted R^2 = 0.8233
+plot(diagn_c)  # scale-location plot is giving, like, bad vibes, but the red line is roughly linear...
+# address heteroscedasticity using wls (https://rpubs.com/mpfoley73/500818)
+weights_c <- 1 / lm(abs(diagn_c$residuals) ~ diagn_c$fitted.values)$fitted.values^2
+wdiagn_c <- lm(formula = log1p(casual) ~ hr + temp + weekday + yr + I(hum^2) + holiday + weathersit + log1p(windspeed) + mnth, data = bike, weights = weights_c)
+summary(wdiagn_c)  # adjusted R^2 = 0.8272
+plot(wdiagn_c)  # scale-location plot is much better!!!
+
+# select predictors for registered riders
+fit0_r <- lm(registered ~ 1, data = bike)
+fit2_r <- lm(registered ~ season + yr + mnth + hr + holiday + weekday + workingday + weathersit + temp + atemp + hum + windspeed, data = bike)
+stepAIC(fit0_r, scope = formula(fit2_r), direction = "both")
+stepmodel_r <- lm(formula = registered ~ hr + yr + mnth + workingday + weathersit + atemp + season + hum + weekday + windspeed + temp, data = bike)
+# adjusted R^2 = 0.6815
+vif(stepmodel_r)
+stepmodel2_r <- lm(formula = registered ~ hr + yr + season + workingday + weathersit + atemp + hum + weekday + windspeed, data = bike)
+summary(stepmodel2_r)  # adjusted R^2 = 0.6781
+
+#  diagnostics---registered
+diagn_r <- lm(formula = log1p(registered) ~ hr + yr + season + workingday + weathersit + atemp + I(hum^2) + weekday + log1p(windspeed), data = bike)
+summary(diagn_r)  # adjusted R^2 = 0.8139
+plot(diagn_r)  # scale-location plot is still not great and idk how to get rid of the red line drop
+# address heteroscedasticity using wls (https://rpubs.com/mpfoley73/500818)
+weights_r <- 1 / lm(abs(diagn_r$residuals) ~ diagn_r$fitted.values)$fitted.values^2
+wdiagn_r <- lm(formula = log1p(registered) ~ hr + yr + season + workingday + weathersit + atemp + I(hum^2) + weekday + log1p(windspeed), data = bike, weights = weights_r)
+summary(wdiagn_r)  # adjusted R^2 = 0.7884
+plot(wdiagn_r)  # scale-location plot is better
+
 
 # Step 4 Residual analysis 
 
@@ -58,7 +122,7 @@ qqline(fit$residuals, col = "red")
 
 durbinWatsonTest(fit)
 
-# based on tests above we see funnel shaped residuals and normality is viaolated therefore we try log transform
+# based on tests above we see funnel shaped residuals and normality is violated therefore we try log transform
 fit_log <- lm(log1p(casual) ~ season + holiday + workingday + weathersit + temp + hum + windspeed, data = bike)
 
 # round 2 diagnostics for log model
