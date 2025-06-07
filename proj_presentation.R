@@ -148,18 +148,24 @@ pairs(log1p(registered) ~ temp + I(temp^2) + workingday + hum + weathersit, data
 
 
 # WOAH THIS IS QUITE GOOD ACTUALLY for casual and registered
-test_r <- lm(formula = sqrt(registered) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike)
+test_r <- lm(formula = sqrt(registered) ~ temp + I(temp^2)+ hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike)
 testweights_r <- 1 / lm(abs(test_r$residuals) ~ test_r$fitted.values)$fitted.values^2
 weighttest_r <- lm(formula = sqrt(registered) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike, weights = testweights_r)
-plot(weighttest_r)
+plot(weighttest_r, cex=0.5)
 summary(weighttest_r)
 
 test_c <- lm(formula = sqrt(casual) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike)
 testweights_c <- 1 / lm(abs(test_c$residuals) ~ test_c$fitted.values)$fitted.values^2
 weighttest_c <- lm(formula = sqrt(casual) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike, weights = testweights_c)
-plot(weighttest_c)
+plot(weighttest_c, cex=0.5)
 summary(weighttest_c)
 
+plot(bike$temp, sqrt(bike$registered), cex=0.5)  # adjust response and coefficients as necessary
+x <- seq(min(bike$temp), max(bike$temp))
+#curve(41.24853*x - 19.14114*x^2 - 1.75835, col='red', add=TRUE)  # only temp terms and intercept
+curve(41.24853*x - 19.14114*x^2 - 1.75835 - 18.37763*x*0.5 - 1.51797*x*0, col='red', add=TRUE)
+curve(41.24853*x - 19.14114*x^2 - 1.75835 - 18.37763*x*0.3 - 1.51797*x*1, col='blue', add=TRUE)
+legend('topleft', legend=c("hum=50%, work=0", "hum=30%, work=1"), col=c("red", "blue"), lty=1, cex=0.75)
 
 # Step 4 Residual analysis 
 
