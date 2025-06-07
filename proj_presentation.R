@@ -41,10 +41,9 @@ bike$weekday <- as.factor(bike$weekday)
 bike$workingday <- as.factor(bike$workingday)  # workingday is completely dependent on holiday and weekday
 bike$weathersit <- as.factor(bike$weathersit)
 
-
+### note: most of what's below is just tuning... the coding equivalent of showing one's work!
 model <- lm(cnt ~ season + holiday + workingday + weathersit + temp + atemp + hum + windspeed, data = bike)
 vif(model)
-# temp and atemp have high VIF... how were these variables chosen for the model?
 
 ## going to try some stepwise selection...
 fit0 <- lm(cnt ~ 1, data = bike)
@@ -146,26 +145,33 @@ plot(weatherstep_r)
 pairs(log1p(registered) ~ temp + I(temp^2) + workingday + hum + weathersit, data = bike, cex = 0.5)
 
 
-
+### note: this part directly below contains the actual models used in the report
 # WOAH THIS IS QUITE GOOD ACTUALLY for casual and registered
-test_r <- lm(formula = sqrt(registered) ~ temp + I(temp^2)+ hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike)
-testweights_r <- 1 / lm(abs(test_r$residuals) ~ test_r$fitted.values)$fitted.values^2
-weighttest_r <- lm(formula = sqrt(registered) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike, weights = testweights_r)
-plot(weighttest_r, cex=0.5)
-summary(weighttest_r)
+fit_r <- lm(formula = sqrt(registered) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike)
+weights_r <- 1 / lm(abs(fit_r$residuals) ~ fit_r$fitted.values)$fitted.values^2
+weightfit_r <- lm(formula = sqrt(registered) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike, weights = weights_r)
+plot(weightfit_r, cex=0.5)
+summary(weightfit_r)
 
-test_c <- lm(formula = sqrt(casual) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike)
-testweights_c <- 1 / lm(abs(test_c$residuals) ~ test_c$fitted.values)$fitted.values^2
-weighttest_c <- lm(formula = sqrt(casual) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike, weights = testweights_c)
-plot(weighttest_c, cex=0.5)
-summary(weighttest_c)
+fit_c <- lm(formula = sqrt(casual) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike)
+weights_c <- 1 / lm(abs(fit_c$residuals) ~ fit_c$fitted.values)$fitted.values^2
+weightfit_c <- lm(formula = sqrt(casual) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike, weights = weights_c)
+plot(weightfit_c, cex=0.5)
+summary(weightfit_c)
 
+### note: this plotting code was used to create the plots in the appendix
 plot(bike$temp, sqrt(bike$registered), cex=0.5)  # adjust response and coefficients as necessary
 x <- seq(min(bike$temp), max(bike$temp))
 #curve(41.24853*x - 19.14114*x^2 - 1.75835, col='red', add=TRUE)  # only temp terms and intercept
 curve(41.24853*x - 19.14114*x^2 - 1.75835 - 18.37763*x*0.5 - 1.51797*x*0, col='red', add=TRUE)
 curve(41.24853*x - 19.14114*x^2 - 1.75835 - 18.37763*x*0.3 - 1.51797*x*1, col='blue', add=TRUE)
 legend('topleft', legend=c("hum=50%, work=0", "hum=30%, work=1"), col=c("red", "blue"), lty=1, cex=0.75)
+
+############################################################################################################
+##### everything below is auxiliary analysis that may not have made it into the report #####################
+##### but nonetheless gives an idea of the strategies we tried #############################################
+##### and also sonata is a code-hoarder so she's keeping it in the file ####################################
+############################################################################################################
 
 # Step 4 Residual analysis 
 
