@@ -107,9 +107,59 @@ plot(wdiagn_r)  # scale-location plot is better
 # just look at weather stuff
 weatherfit_r <- lm(formula = log1p(registered) ~ weathersit + temp + I(hum^2) + temp * I(hum^2) + log1p(windspeed), data = bike)
 weatherweights_r <- 1 / lm(abs(weatherfit_r$residuals) ~ weatherfit_r$fitted.values)$fitted.values^2
-wweatherfit_r <- lm(formula = log1p(registered) ~ weathersit + temp + I(hum^2) + temp * I(hum^2) + log1p(windspeed), data = bike, weights = weatherweights_r)
+wweatherfit_r <- lm(formula = log1p(registered) ~  temp + I(hum^2) + weathersit + temp * I(hum^2) + log1p(windspeed), data = bike, weights = weatherweights_r)
 summary(wweatherfit_r)  # adjusted R^2 = 0.2553
 plot(wweatherfit_r)  # qq plot looks atrocious
+
+
+## weather and workingday interactions
+weatherfit0_c <- lm(formula = log1p(casual) ~ 1, data = bike)
+weatherfit_int_c <- lm(formula = log1p(casual) ~ sqrt(temp) * workingday + hum * workingday + sqrt(temp) * hum + weathersit * workingday + log1p(windspeed) * workingday, data = bike)
+summary(weatherfit_int_c)
+stepAIC(weatherfit0_c, scope = formula(weatherfit_int_c), direction = "both")
+
+weatherstep_c <- lm(formula = log1p(casual) ~ sqrt(temp) + weathersit + sqrt(temp):hum + sqrt(temp):workingday, data = bike)
+#weatherstep2_c <- lm(formula = log1p(casual) ~ sqrt(temp) + weathersit + log1p(windspeed) + sqrt(temp):hum + sqrt(temp):workingday, data = bike)
+summary(weatherstep_c)
+plot(weatherstep_c)
+
+pairs(log1p(casual) ~ sqrt(temp) + workingday + hum + weathersit, data = bike, cex = 0.5)
+
+
+## WEIGHTING MAKES THE DIAGNOSTICS WORSE!!!
+weatherweights2_c <- 1 / lm(abs(weatherstep_c$residuals) ~ weatherstep_c$fitted.values)$fitted.values^2
+wweatherfit2_c <- lm(formula = log1p(casual) ~ sqrt(temp) + weathersit + sqrt(temp):hum + sqrt(temp):workingday, data = bike, weights = weatherweights2_c)
+summary(wweatherfit2_c)  # adjusted R^2 = 0.5062
+plot(wweatherfit2_c)
+
+
+# registered
+weatherfit0_r <- lm(formula = log1p(registered) ~ 1, data = bike)
+weatherfit_int_r <- lm(formula = log1p(registered) ~ sqrt(temp) * workingday + hum * workingday + sqrt(temp) * hum + weathersit * workingday + log1p(windspeed) * workingday, data = bike)
+summary(weatherfit_int_r)
+stepAIC(weatherfit0_r, scope = formula(weatherfit_int_r), direction = "both")
+
+weatherstep_r <- lm(formula = log1p(registered) ~ sqrt(temp) + workingday + hum + weathersit + sqrt(temp):hum + sqrt(temp):workingday, data = bike)
+summary(weatherstep_r)
+plot(weatherstep_r)
+
+pairs(log1p(registered) ~ temp + I(temp^2) + workingday + hum + weathersit, data = bike, cex = 0.5)
+
+
+
+# WOAH THIS IS QUITE GOOD ACTUALLY for casual and registered
+test_r <- lm(formula = sqrt(registered) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike)
+testweights_r <- 1 / lm(abs(test_r$residuals) ~ test_r$fitted.values)$fitted.values^2
+weighttest_r <- lm(formula = sqrt(registered) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike, weights = testweights_r)
+plot(weighttest_r)
+summary(weighttest_r)
+
+test_c <- lm(formula = sqrt(casual) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike)
+testweights_c <- 1 / lm(abs(test_c$residuals) ~ test_c$fitted.values)$fitted.values^2
+weighttest_c <- lm(formula = sqrt(casual) ~ temp + I(temp^2) + hum + I(hum^2) + workingday + weathersit + temp:hum + temp:workingday, data = bike, weights = testweights_c)
+plot(weighttest_c)
+summary(weighttest_c)
+
 
 # Step 4 Residual analysis 
 
